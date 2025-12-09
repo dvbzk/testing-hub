@@ -12,7 +12,7 @@ jobs:
     if: github.event_name == 'repository_dispatch'
     name: Smoke Tests (after deploy)
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
     steps:
       - uses: actions/checkout@v4
 
@@ -24,8 +24,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps 
+
       - name: Run Smoke Tests
         run: npx playwright test smoke --project=chromium
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,7 +49,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     name: Full Tests
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
     steps:
       - uses: actions/checkout@v4
 
@@ -56,6 +60,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps 
 
       - name: Run All Tests
         run: npx playwright test
