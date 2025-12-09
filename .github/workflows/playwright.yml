@@ -3,8 +3,6 @@ name: Playwright Tests
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -12,7 +10,7 @@ jobs:
     if: github.event_name == 'repository_dispatch' && github.event.action == 'deploy-success'
     name: Smoke Tests (after deploy)
     timeout-minutes: 30
-    runs-on: microsoft/playwright:latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -43,10 +41,10 @@ jobs:
           destination_dir: smoke-${{ github.run_id }}
 
   full-tests:
-    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     name: Full Tests
     timeout-minutes: 60
-    runs-on: microsoft/playwright:latest  # Оптимізація №1: браузери вже встановлені
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
