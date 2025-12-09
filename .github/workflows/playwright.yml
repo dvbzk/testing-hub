@@ -1,16 +1,16 @@
 name: Playwright Tests
 
 on:
-  workflow_dispatch:
   repository_dispatch:
     types: [ deploy-success ]
+  workflow_dispatch: 
 
 jobs:
   smoke-tests:
     if: github.event_name == 'repository_dispatch'
-    name: Smoke Tests (after deploy)
+    name: Smoke Tests + Deploy Report
     timeout-minutes: 30
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -23,31 +23,27 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps 
+        run: npx playwright install --with-deps
 
       - name: Run Smoke Tests
         run: npx playwright test tests/smoke
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: smoke-report-${{ github.run_id }}
-          path: playwright-report/
-          retention-days: 30
+      - name: Create 404.html for SPA routing
+        run: cp playwright-report/index.html playwright-report/404.html
 
-      - name: Deploy Smoke Report
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./playwright-report
-          destination_dir: smoke/${{ github.run_id }}
+          path: playwright-report/
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
 
   full-tests:
     if: github.event_name == 'workflow_dispatch'
-    name: Full Tests
+    name: Full Tests + Deploy Report (manual)
     timeout-minutes: 60
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -60,14 +56,18 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps 
+        run: npx playwright install --with-deps
 
       - name: Run All Tests
-        run: npx playwright test
+        run: npx playwright test tests
 
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - name: Create 404.html for SPA routing
+        run: cp playwright-report/index.html playwright-report/404.html
+
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: full-report-${{ github.run_id }}
           path: playwright-report/
-          retention-days: 30
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
