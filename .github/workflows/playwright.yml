@@ -45,7 +45,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     name: Full Tests
     timeout-minutes: 60
-    runs-on: microsoft/playwright:latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
