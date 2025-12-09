@@ -1,29 +1,77 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  repository_dispatch:
-    types: [deploy-success]
+  workflow_dispatch:
+
 jobs:
-  test:
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
+  smoke-tests:
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'deploy-success'
+    name: Smoke Tests (after deploy)
+    timeout-minutes: 30
+    runs-on: microsoft/playwright:latest 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Smoke Tests (only Chromium)
+        run: npx playwright test smoke --project=chromium 
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-report-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Deploy Smoke Report
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
+          destination_dir: smoke-${{ github.run_id }}
+
+  full-tests:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    name: Full Tests
+    timeout-minutes: 60
+    runs-on: microsoft/playwright:latest  # Оптимізація №1: браузери вже встановлені
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run All Tests
+        run: npx playwright test  # Якщо хочеш швидше — додай --project=chromium
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-report-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Deploy Full Report
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
+          destination_dir: full-${{ github.run_id }}
