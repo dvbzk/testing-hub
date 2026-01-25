@@ -18,22 +18,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-
       - name: Run Smoke Tests
         run: npx playwright test tests/smoke --reporter=html
         continue-on-error: true
-
       - name: Upload Smoke Report Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -41,7 +36,6 @@ jobs:
           name: smoke-report-${{ github.run_id }}
           path: playwright-report/
           retention-days: 30
-
       - name: Publish Smoke Report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v4
@@ -58,22 +52,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-
       - name: Run All Tests
         run: npx playwright test --reporter=html
         continue-on-error: true
-
       - name: Upload Full Report Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -81,7 +70,6 @@ jobs:
           name: full-report-${{ github.run_id }}
           path: playwright-report/
           retention-days: 30
-
       - name: Publish Full Report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v4
@@ -89,4 +77,41 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
           destination_dir: full-reports/run-${{ github.run_id }}
+          keep_files: true
+
+  update-index:
+    needs: [smoke-tests, full-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Create / Update index.html
+        run: |
+          REPORT_URL="https://dvbzk.github.io/testing-hub/smoke-reports/run-${{ github.run_id }}/index.html"
+          cat <<EOF > index.html
+          <!DOCTYPE html>
+          <html lang="uk">
+          <head>
+            <meta charset="UTF-8">
+            <title>Playwright Reports</title>
+            <style>body{font-family:Arial;padding:30px;max-width:800px;margin:auto;} h1{color:#333;} a{color:#0066cc;}</style>
+          </head>
+          <body>
+            <h1>Playwright Reports</h1>
+            <p>Останній репорт (run-${{ github.run_id }}): <a href="$REPORT_URL" target="_blank">відкрити</a></p>
+            <p>Всі smoke: <a href="smoke-reports/">переглянути</a></p>
+            <p>Всі full: <a href="full-reports/">переглянути</a></p>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy index.html
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          destination_dir: .
           keep_files: true
