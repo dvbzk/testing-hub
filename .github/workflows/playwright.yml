@@ -50,8 +50,6 @@ jobs:
           publish_dir: ./playwright-report
           destination_dir: smoke-reports/run-${{ github.run_id }}
           keep_files: true
-          enable_jekyll: false
-          force_orphan: false
 
   full-tests:
     if: github.event_name == 'workflow_dispatch'
@@ -92,5 +90,3 @@ jobs:
           publish_dir: ./playwright-report
           destination_dir: full-reports/run-${{ github.run_id }}
           keep_files: true
-          enable_jekyll: false
-          force_orphan: false
