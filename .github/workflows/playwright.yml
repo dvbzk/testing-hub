@@ -90,7 +90,12 @@ jobs:
 
       - name: Create / Update index.html
         run: |
-          REPORT_URL="https://dvbzk.github.io/testing-hub/smoke-reports/run-${{ github.run_id }}/index.html"
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            PATH="smoke-reports"
+          else
+            PATH="full-reports"
+          fi
+          URL="https://dvbzk.github.io/testing-hub/${PATH}/run-${{ github.run_id }}/index.html"
           cat <<EOF > index.html
           <!DOCTYPE html>
           <html lang="uk">
