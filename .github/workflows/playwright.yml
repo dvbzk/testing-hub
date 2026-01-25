@@ -96,17 +96,19 @@ jobs:
             REPORT_PATH="full-reports/run-${{ github.run_id }}/index.html"
           fi
 
-          echo '<!DOCTYPE html>
+          cat > index.html << 'END'
+          <!DOCTYPE html>
           <html lang="uk">
           <head>
-          <meta charset="UTF-8">
-          <title>Reports</title>
+            <meta charset="UTF-8">
+            <title>Reports</title>
           </head>
           <body>
-          <h1>Playwright Reports</h1>
-          <p>Останній репорт (run-${{ github.run_id }}): <a href="https://dvbzk.github.io/testing-hub/'${REPORT_PATH}'">відкрити</a></p>
+            <h1>Playwright Reports</h1>
+            <p>Останній репорт (run-${{ github.run_id }}): <a href="https://dvbzk.github.io/testing-hub/$REPORT_PATH">відкрити</a></p>
           </body>
-          </html>' > index.html
+          </html>
+          END
 
       - name: Deploy index.html
         uses: peaceiris/actions-gh-pages@v4
