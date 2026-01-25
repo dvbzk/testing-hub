@@ -96,7 +96,6 @@ jobs:
             PATH="full-reports"
           fi
           URL="https://dvbzk.github.io/testing-hub/${PATH}/run-${{ github.run_id }}/index.html"
-          cat <<EOF > index.html
           <!DOCTYPE html>
           <html lang="uk">
           <head>
