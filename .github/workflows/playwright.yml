@@ -102,8 +102,6 @@ jobs:
           <body>
             <h1>Playwright Reports</h1>
             <p>Останній репорт (run-${{ github.run_id }}): <a href="$REPORT_URL" target="_blank">відкрити</a></p>
-            <p>Всі smoke: <a href="smoke-reports/">переглянути</a></p>
-            <p>Всі full: <a href="full-reports/">переглянути</a></p>
           </body>
           </html>
           EOF
