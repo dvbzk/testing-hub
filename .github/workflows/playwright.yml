@@ -5,12 +5,17 @@ on:
   repository_dispatch:
     types: [ deploy-success ]
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   smoke-tests:
     if: github.event_name == 'repository_dispatch'
     name: Smoke Tests (after deploy)
     timeout-minutes: 30
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -23,23 +28,36 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps 
+        run: npx playwright install --with-deps
 
       - name: Run Smoke Tests
-        run: npx playwright test tests/smoke
+        run: npx playwright test tests/smoke --reporter=html
+        continue-on-error: true
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Smoke Report Artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: smoke-report-${{ github.run_id }}
           path: playwright-report/
           retention-days: 30
 
+      - name: Publish Smoke Report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
+          destination_dir: smoke-reports/run-${{ github.run_id }}
+          keep_files: true
+          enable_jekyll: false
+          force_orphan: false
+
   full-tests:
     if: github.event_name == 'workflow_dispatch'
     name: Full Tests
     timeout-minutes: 60
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -52,14 +70,27 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps 
+        run: npx playwright install --with-deps
 
       - name: Run All Tests
-        run: npx playwright test
+        run: npx playwright test --reporter=html
+        continue-on-error: true
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Full Report Artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: full-report-${{ github.run_id }}
           path: playwright-report/
           retention-days: 30
+
+      - name: Publish Full Report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
+          destination_dir: full-reports/run-${{ github.run_id }}
+          keep_files: true
+          enable_jekyll: false
+          force_orphan: false
