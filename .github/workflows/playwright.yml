@@ -88,27 +88,25 @@ jobs:
         with:
           ref: gh-pages
 
-      - name: Create / Update index.html
+      - name: Update index.html
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            PATH="smoke-reports"
+            REPORT_PATH="smoke-reports/run-${{ github.run_id }}/index.html"
           else
-            PATH="full-reports"
+            REPORT_PATH="full-reports/run-${{ github.run_id }}/index.html"
           fi
-          URL="https://dvbzk.github.io/testing-hub/${PATH}/run-${{ github.run_id }}/index.html"
-          <!DOCTYPE html>
+
+          echo '<!DOCTYPE html>
           <html lang="uk">
           <head>
-            <meta charset="UTF-8">
-            <title>Playwright Reports</title>
-            <style>body{font-family:Arial;padding:30px;max-width:800px;margin:auto;} h1{color:#333;} a{color:#0066cc;}</style>
+          <meta charset="UTF-8">
+          <title>Reports</title>
           </head>
           <body>
-            <h1>Playwright Reports</h1>
-            <p>Останній репорт (run-${{ github.run_id }}): <a href="$REPORT_URL" target="_blank">відкрити</a></p>
+          <h1>Playwright Reports</h1>
+          <p>Останній репорт (run-${{ github.run_id }}): <a href="https://dvbzk.github.io/testing-hub/'${REPORT_PATH}'">відкрити</a></p>
           </body>
-          </html>
-          EOF
+          </html>' > index.html
 
       - name: Deploy index.html
         uses: peaceiris/actions-gh-pages@v4
