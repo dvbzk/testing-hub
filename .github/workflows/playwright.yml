@@ -33,7 +33,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-report-${{ github.run_id }}
+          name: smoke-report-${{ (date +"%Y-%m-%d") }}
           path: playwright-report/
           retention-days: 30
       - name: Publish Smoke Report to GitHub Pages
@@ -42,7 +42,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
-          destination_dir: smoke-reports/run-${{ github.run_id }}
+          destination_dir: smoke-reports/run-${{ (date +"%Y-%m-%d") }}
           keep_files: true
 
   full-tests:
@@ -76,7 +76,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
-          destination_dir: full-reports/run-${{ github.run_id }}
+          destination_dir: full-reports/run-${{ (date +"%Y-%m-%d") }}
           keep_files: true
 
   update-index:
@@ -88,27 +88,24 @@ jobs:
         with:
           ref: gh-pages
 
-      - name: Update index.html
+      - name: Update root index.html with latest links
+        if: always()
         run: |
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            REPORT_PATH="smoke-reports/run-${{ github.run_id }}/index.html"
-          else
-            REPORT_PATH="full-reports/run-${{ github.run_id }}/index.html"
-          fi
-
-          cat > index.html << 'END'
+          REPORT_PATH="smoke-reports/$(date +"%Y-%m-%d-%H%M")/index.html"
+          RUN_DATE=$(date +"%Y-%m-%d %H:%M")
+          cat <<EOF > index.html
           <!DOCTYPE html>
           <html lang="uk">
           <head>
             <meta charset="UTF-8">
-            <title>Reports</title>
+            <title>Playwright Reports - testing-hub</title>
+            <style>body { font-family: Arial; padding: 20px; }</style>
           </head>
           <body>
-            <h1>Playwright Reports</h1>
-            <p>Останній репорт (run-${{ github.run_id }}): <a href="https://dvbzk.github.io/testing-hub/$REPORT_PATH">відкрити</a></p>
+            <p>Останній smoke: <a href=\"https://dvbzk.github.io/testing-hub/${REPORT_PATH}\" target=\"_blank\">run-${RUN_DATE}</a></p>
           </body>
           </html>
-          END
+          EOF
 
       - name: Deploy index.html
         uses: peaceiris/actions-gh-pages@v4
