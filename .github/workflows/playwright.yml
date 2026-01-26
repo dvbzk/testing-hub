@@ -33,7 +33,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-report-${{ (date +"%Y-%m-%d") }}
+          name: smoke-report-${{ github.run_id }}
           path: playwright-report/
           retention-days: 30
       - name: Publish Smoke Report to GitHub Pages
@@ -42,7 +42,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
-          destination_dir: smoke-reports/run-${{ (date +"%Y-%m-%d") }}
+          destination_dir: smoke-reports/run-${{ github.run_id }}
           keep_files: true
 
   full-tests:
@@ -76,7 +76,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
-          destination_dir: full-reports/run-${{ (date +"%Y-%m-%d") }}
+          destination_dir: full-reports/run-${{ github.run_id }}
           keep_files: true
 
   update-index:
@@ -88,29 +88,28 @@ jobs:
         with:
           ref: gh-pages
 
-      - name: Update root index.html with latest links
-        if: always()
+      - name: Update root index.html
         run: |
-          REPORT_PATH="smoke-reports/$(date +"%Y-%m-%d-%H%M")/index.html"
-          RUN_DATE=$(date +"%Y-%m-%d %H:%M")
           cat <<EOF > index.html
           <!DOCTYPE html>
           <html lang="uk">
           <head>
             <meta charset="UTF-8">
-            <title>Playwright Reports - testing-hub</title>
-            <style>body { font-family: Arial; padding: 20px; }</style>
+            <title>Playwright Reports</title>
+            <style>body{font-family:Arial;padding:20px;}</style>
           </head>
           <body>
-            <p>Останній smoke: <a href=\"https://dvbzk.github.io/testing-hub/${REPORT_PATH}\" target=\"_blank\">run-${RUN_DATE}</a></p>
+            <h1>Playwright Reports - testing-hub</h1>
+            <p>Останній smoke: <a href="smoke-reports/run-${{ github.run_id }}/index.html" target="_blank">run-${{ github.run_id }}</a></p>
+            <p>Останній full: <a href="full-reports/run-${{ github.run_id }}/index.html" target="_blank">run-${{ github.run_id }}</a></p>
+            <p><a href="smoke-reports/">Всі smoke репорти</a> | <a href="full-reports/">Всі full репорти</a></p>
           </body>
           </html>
           EOF
 
-      - name: Deploy index.html
+      - name: Deploy index.html to root
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
-          destination_dir: .
           keep_files: true
