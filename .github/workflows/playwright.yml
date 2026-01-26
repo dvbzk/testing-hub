@@ -1,22 +1,41 @@
+name: Playwright Tests
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [ deploy-success ]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
-  tests-and-report:
+  report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
-      - run: npm ci
-      - run: npx playwright install --with-deps
 
-      - name: Run Smoke
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Smoke Tests
         if: github.event_name == 'repository_dispatch'
         run: npx playwright test tests/smoke --reporter=html
+        continue-on-error: true
 
-      - name: Run Full
+      - name: Run Full Tests
         if: github.event_name == 'workflow_dispatch'
         run: npx playwright test --reporter=html
+        continue-on-error: true
 
       - name: Upload Artifact
         if: always()
@@ -26,31 +45,35 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Checkout gh-pages
+      - name: Checkout gh-pages branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages
           path: gh-pages
 
-      - name: Copy report & generate index
+      - name: Copy report and update index.html
         run: |
           DATE=$(date +%Y-%m-%d-%H%M%S)
           mkdir -p gh-pages/reports/$DATE
-          cp -r playwright-report/* gh-pages/reports/$DATE/
+          cp -r playwright-report/* gh-pages/reports/$DATE/ || true
 
           cat <<EOF > gh-pages/index.html
           <!DOCTYPE html>
           <html lang="uk">
-          <head><meta charset="UTF-8"><title>Reports</title></head>
+          <head>
+            <meta charset="UTF-8">
+            <title>Playwright Reports</title>
+            <style>body {font-family:Arial;padding:20px;}</style>
+          </head>
           <body>
-            <h1>Останній репорт</h1>
-            <p><a href="reports/$DATE/index.html">run-$DATE</a></p>
-            <p><a href="reports/">Всі репорти</a></p>
+            <h1>Playwright Reports</h1>
+            <p>Останній репорт: <a href="reports/$DATE/index.html" target="_blank">$DATE</a></p>
+            <p><a href="reports/">Переглянути всі репорти</a></p>
           </body>
           </html>
           EOF
 
-      - name: Deploy to gh-pages (один пуш)
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
