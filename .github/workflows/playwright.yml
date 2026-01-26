@@ -1,20 +1,5 @@
-name: Playwright Tests
-
-on:
-  workflow_dispatch:
-  repository_dispatch:
-    types: [ deploy-success ]
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 jobs:
-  smoke-tests:
-    if: github.event_name == 'repository_dispatch'
-    name: Smoke Tests (after deploy)
-    timeout-minutes: 30
+  tests-and-report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,94 +7,52 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run Smoke Tests
+      - run: npm ci
+      - run: npx playwright install --with-deps
+
+      - name: Run Smoke
+        if: github.event_name == 'repository_dispatch'
         run: npx playwright test tests/smoke --reporter=html
-        continue-on-error: true
-      - name: Upload Smoke Report Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: smoke-report-${{ github.run_id }}
-          path: playwright-report/
-          retention-days: 30
-      - name: Publish Smoke Report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./playwright-report
-          destination_dir: smoke-reports/run-${{ github.run_id }}
-          keep_files: true
 
-  full-tests:
-    if: github.event_name == 'workflow_dispatch'
-    name: Full Tests
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run All Tests
+      - name: Run Full
+        if: github.event_name == 'workflow_dispatch'
         run: npx playwright test --reporter=html
-        continue-on-error: true
-      - name: Upload Full Report Artifact
+
+      - name: Upload Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: full-report-${{ github.run_id }}
+          name: playwright-report-${{ github.run_id }}
           path: playwright-report/
           retention-days: 30
-      - name: Publish Full Report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./playwright-report
-          destination_dir: full-reports/run-${{ github.run_id }}
-          keep_files: true
 
-  update-index:
-    needs: [smoke-tests, full-tests]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
         with:
           ref: gh-pages
+          path: gh-pages
 
-      - name: Update root index.html
+      - name: Copy report & generate index
         run: |
-          cat <<EOF > index.html
+          DATE=$(date +%Y-%m-%d-%H%M%S)
+          mkdir -p gh-pages/reports/$DATE
+          cp -r playwright-report/* gh-pages/reports/$DATE/
+
+          cat <<EOF > gh-pages/index.html
           <!DOCTYPE html>
           <html lang="uk">
-          <head>
-            <meta charset="UTF-8">
-            <title>Playwright Reports</title>
-            <style>body{font-family:Arial;padding:20px;}</style>
-          </head>
+          <head><meta charset="UTF-8"><title>Reports</title></head>
           <body>
-            <h1>Playwright Reports - testing-hub</h1>
-            <p>Останній smoke: <a href="smoke-reports/run-${{ github.run_id }}/index.html" target="_blank">run-${{ github.run_id }}</a></p>
-            <p>Останній full: <a href="full-reports/run-${{ github.run_id }}/index.html" target="_blank">run-${{ github.run_id }}</a></p>
-            <p><a href="smoke-reports/">Всі smoke репорти</a> | <a href="full-reports/">Всі full репорти</a></p>
+            <h1>Останній репорт</h1>
+            <p><a href="reports/$DATE/index.html">run-$DATE</a></p>
+            <p><a href="reports/">Всі репорти</a></p>
           </body>
           </html>
           EOF
 
-      - name: Deploy index.html to root
+      - name: Deploy to gh-pages (один пуш)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: gh-pages
           keep_files: true
