@@ -19,7 +19,8 @@ export default defineConfig({
   use: {
     trace: 'on',    
     screenshot: 'on',
-    video: 'retain-on-failure'    
+    video: 'retain-on-failure' ,
+    baseURL: "https://stage-logistic.difreight.com/app/transportations"
   },
   /* Configure projects for major browsers */
   projects: [
